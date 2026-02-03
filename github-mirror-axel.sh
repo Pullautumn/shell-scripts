@@ -3,8 +3,8 @@
 # title:         github-mirror-axel.sh
 # description:   一个 axel 包装脚本，用于通过镜像加速 GitHub 下载
 # author:        duanluan<duanluan@outlook.com>
-# date:          2025-12-30
-# version:       v3.2
+# date:          2026-02-03
+# version:       v3.3
 # usage:         github-mirror-axel.sh <output_file> <url>
 #
 # description_zh:
@@ -14,6 +14,7 @@
 #   来加速下载。其他 URL 则保持不变。
 #
 # changelog:
+#   v3.3 (2026-02-03)：直连出现错误就不重试
 #   v3.2 (2026-01-04)：直连且出现 403/404 错误，直接终止，不再尝试镜像
 #   v3.0 (2025-12-30)：自我更新功能，运行 --self-update 即可通过镜像检测并更新脚本自身
 #   v2.5 (2025-12-30)：
@@ -360,12 +361,9 @@ while [ $attempt -le $MAX_RETRIES ]; do
         # 如果是直连且出现 403/404 错误，直接终止，不再尝试镜像
         # 避免因权限问题或文件不存在导致的无效循环重试
         if [ -z "$proxy_type" ]; then
-            err_http_code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "$url")
-            if [ "$err_http_code" == "403" ] || [ "$err_http_code" == "404" ]; then
-                echo "⛔ 直连检测到致命错误 (HTTP $err_http_code)，停止下载。"
-                rm -f "$OUTPUT_FILE" "$OUTPUT_FILE.st"
-                exit 1
-            fi
+            echo "⛔ 直连模式下载失败（axel 退出码: $exit_code），不再重试。"
+            rm -f "$OUTPUT_FILE" "$OUTPUT_FILE.st"
+            exit 1
         fi
 
         # 如果不是最后一次，就清理重试
